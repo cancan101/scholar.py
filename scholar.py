@@ -266,6 +266,7 @@ class ScholarArticle(object):
             'url_versions':  [None, 'Versions list',  8],
             'url_citation':  [None, 'Citation link',  9],
             'excerpt':       [None, 'Excerpt',       10],
+            'authors':       [None, 'Authors',       11],
         }
 
         # The citation data in one of the standard export formats,
@@ -316,6 +317,9 @@ class ScholarArticle(object):
         res.append(sep.join([unicode(self.attrs[key][0]) for key in keys]))
         return '\n'.join(res)
 
+    def as_dict(self):
+        return {k: v[0] for k, v in self.attrs.iteritems()}
+
     def as_citation(self):
         """
         Reports the article in a standard citation format. This works only
@@ -356,7 +360,7 @@ class ScholarArticleParser(object):
         content as needed, and notifies the parser instance of
         resulting instances via the handle_article callback.
         """
-        self.soup = BeautifulSoup(html)
+        self.soup = BeautifulSoup(html, "lxml")
 
         # This parses any global, non-itemized attributes from the page.
         self._parse_globals()
@@ -578,6 +582,7 @@ class ScholarArticleParser120726(ScholarArticleParser):
                 if tag.find('div', {'class': 'gs_a'}):
                     year = self.year_re.findall(tag.find('div', {'class': 'gs_a'}).text)
                     self.article['year'] = year[0] if len(year) > 0 else None
+                    self.article['authors'] = [(a.text, a['href']) for a in tag.find('div', {'class': 'gs_a'}).findAll('a')]
 
                 if tag.find('div', {'class': 'gs_fl'}):
                     self._parse_links(tag.find('div', {'class': 'gs_fl'}))
@@ -732,7 +737,7 @@ class SearchScholarQuery(ScholarQuery):
         self.words_none = None # None of these words
         self.phrase = None
         self.scope_title = False # If True, search in title only
-        self.author = None 
+        self.author = None
         self.pub = None
         self.timeframe = [None, None]
         self.include_patents = True
